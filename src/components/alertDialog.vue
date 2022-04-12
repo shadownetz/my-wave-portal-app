@@ -9,7 +9,7 @@
 </template>
 
 <script lang="ts">
-import {defineComponent, ref, watch} from "vue";
+import {defineComponent, watch} from "vue";
 
 export default defineComponent({
     name: "alertDialog",
@@ -23,7 +23,7 @@ export default defineComponent({
     },
     setup(props){
 
-        watch(()=>props.error, (newVal)=>{
+        watch(()=>props.error, ()=>{
             const alertElem = document.getElementById('wave-alert');
             if(alertElem){
                 alertElem.style.display = "block"

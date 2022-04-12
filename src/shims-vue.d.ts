@@ -5,4 +5,9 @@ declare module '*.vue' {
   export default component
 }
 
+declare module '*.json' {
+  const data: any
+  export default data
+}
+
 declare var ethereum: any
