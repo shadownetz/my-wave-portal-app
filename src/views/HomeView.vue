@@ -1,6 +1,5 @@
 <template>
     <div class="mainContainer">
-
         <div class="dataContainer">
             <div class="header">
                 👋 Hey there!
@@ -16,20 +15,57 @@
             </button>
         </div>
     </div>
+    <alert-dialog :error="error" :message="message"/>
 </template>
 
 <script lang="ts">
-import { defineComponent } from 'vue';
+import { defineComponent, onMounted, ref } from 'vue';
+import AlertDialog from "@/components/alertDialog.vue";
 
 export default defineComponent({
     name: 'HomeView',
+    components: {AlertDialog},
     setup(){
-        const wave = ()=>{
-            //
+        const error = ref(false);
+        const message = ref("");
+        const {ethereum} = window;
+        let accounts = [];
+
+        const checkIfWalletIsConnected = ()=>{
+            if(!ethereum){
+                error.value = !error.value ;
+                message.value = "Metemask not detected! Ensure you have MetaMask installed";
+            }else{
+                error.value = !error.value ;
+                message.value = "Hurray! Metamask is installed"
+            }
         }
 
+        const wave =  async ()=>{
+            if(ethereum){
+                try{
+                    accounts = await ethereum.request({ method: "eth_accounts" });
+                    if(accounts.length > 0){
+                        error.value = !error.value;
+                        message.value = `Found account ${accounts[0]}`;
+                    }else{
+                        throw new Error("No Authorized account found")
+                    }
+                }catch (e: any){
+                    error.value = !error.value ;
+                    message.value = e.message;
+                }
+            }
+        }
+
+        onMounted(()=>{
+            checkIfWalletIsConnected();
+        })
+
         return {
-            wave
+            wave,
+            error,
+            message
         }
     }
 });
