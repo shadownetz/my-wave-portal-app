@@ -24,7 +24,7 @@ export const store = createStore({
   )],
   state: {
     accounts: [],
-    contractAddress: "0x83510A6A88F57BB9C318B8FcC20bA6aF148AEfc1"
+    contractAddress: "0xc1080B86D79BB6e5b93358881d2A3A2600d9f04C"
   },
   getters: {
     account: state => state.accounts.length>0?state.accounts[0]:"",
