@@ -7,7 +7,8 @@ const ls = new SecureLS({ isCompression: false });
 // define your typings for the store state
 export interface State {
   accounts: Array<string>,
-  contractAddress: string
+  contractAddress: string,
+  o_contractAddress: string
 }
 
 export const key: InjectionKey<Store<State>> = Symbol()
@@ -24,7 +25,8 @@ export const store = createStore({
   )],
   state: {
     accounts: [],
-    contractAddress: "0xc1080B86D79BB6e5b93358881d2A3A2600d9f04C"
+    contractAddress:"0x5262E311DAd639Ab2c6B494387e3447EC0D9f293",
+    o_contractAddress: "0xc1080B86D79BB6e5b93358881d2A3A2600d9f04C"
   },
   getters: {
     account: state => state.accounts.length>0?state.accounts[0]:"",
