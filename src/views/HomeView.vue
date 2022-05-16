@@ -86,64 +86,65 @@ class Wave{
 export default defineComponent({
     name: 'HomeView',
     components: {AlertDialog},
-    setup(){
+    setup() {
         const store = useStore(key);
         const error = ref(false);
         const message = ref("");
         const {ethereum} = window;
-        const accounts = computed(()=>store.state.accounts);
+        const accounts = computed(() => store.state.accounts);
         const totalWaves = ref(0);
         const loading = ref(false);
         const txnOutput = ref("");
         const waves = ref([] as Array<Wave>);
         const waveMessage = ref("");
 
-        const showAlert = (_message: string)=>{
+        const showAlert = (_message: string) => {
             error.value = !error.value;
             message.value = _message
         }
 
-        const checkIfWalletIsConnected = ()=>{
-            if(!ethereum){
+        const scrollMsgToBottom = () => {
+            const msgsContainer = document.getElementsByClassName('messagesContainer');
+            if (msgsContainer.length > 0) {
+                msgsContainer[0].animate({
+                    scrollTop: msgsContainer[0].scrollHeight
+                }, 1000)
+            }
+        }
+
+        const checkIfWalletIsConnected = () => {
+            if (!ethereum) {
                 showAlert("Metemask not detected! Ensure you have MetaMask installed");
-            }else{
+            } else {
                 showAlert("Hurray! Metamask is installed")
             }
             return !!ethereum;
         }
 
-        const connectWallet = async ()=>{
-            if(ethereum){
-                try{
-                    let _accounts = await ethereum.request({ method: "eth_requestAccounts" });
+        const connectWallet = async () => {
+            if (ethereum) {
+                try {
+                    let _accounts = await ethereum.request({method: "eth_requestAccounts"});
+                    ethereum.on('accountsChanged', (__accounts: []) => {
+                        store.commit('accounts', __accounts);
+                        showAlert(`Updated account ${accounts.value[0]}`);
+                    });
                     store.commit('accounts', _accounts);
-                    if(_accounts.value.length > 0){
+                    if (accounts.value.length > 0) {
                         showAlert(`Found account ${accounts.value[0]}`);
-                    }else{
+                    } else {
                         throw new Error("No Authorized account found")
                     }
-                }catch (e: any){
+                } catch (e: any) {
                     showAlert(e.message);
                 }
             }
         }
 
-        const fetchTotalWaves = async ()=>{
-            const provider = new ethers.providers.Web3Provider(ethereum);
-            const signer = provider.getSigner();
-            const wavePortalContract = new ethers.Contract(
-                store.getters['contractAddress'],
-                contractABI.abi,
-                signer
-            );
-            let count = await wavePortalContract.getTotalWaves();
-            totalWaves.value = count.toNumber();
-        }
-
-        const wave =  async ()=>{
-            if(ethereum){
+        const wave = async () => {
+            if (ethereum) {
                 loading.value = true;
-                try{
+                try {
                     txnOutput.value = "";
                     const provider = new ethers.providers.Web3Provider(ethereum);
                     const signer = provider.getSigner();
@@ -152,33 +153,30 @@ export default defineComponent({
                         contractABI.abi,
                         signer
                     );
-                    const waveTxn = await wavePortalContract.wave(waveMessage.value);
+                    const waveTxn = await wavePortalContract.wave(waveMessage.value, {gasLimit: 300000});
                     showAlert(`Mining... ${waveTxn.hash}`);
-                    txnOutput.value = `Mining Transaction: View on etherscan <a href="https://rinkeby.etherscan.io/tx/${waveTxn.hash}" target="_blank">https://rinkeby.etherscan.io/tx/${waveTxn.hash}</a>`;
-                    console.log(`Mining Transaction: View on etherscan <a href="https://rinkeby.etherscan.io/tx/${waveTxn.hash}" target="_blank">https://rinkeby.etherscan.io/tx/${waveTxn.hash}</a>`);
+                    txnOutput.value = `Mining Transaction: View on etherscan <a href="https://goerli.etherscan.io/tx/${waveTxn.hash}" target="_blank">https://goerli.etherscan.io/tx/${waveTxn.hash}</a>`;
+                    console.log(`Mining Transaction: View on etherscan <a href="https://goerli.etherscan.io/tx/${waveTxn.hash}" target="_blank">https://goerli.etherscan.io/tx/${waveTxn.hash}</a>`);
 
 
                     await waveTxn.wait();
                     showAlert(`Mined... ${waveTxn.hash}`);
-                    txnOutput.value = `Mined Transaction: View on etherscan <a href="https://rinkeby.etherscan.io/tx/${waveTxn.hash}" target="_blank">https://rinkeby.etherscan.io/tx/${waveTxn.hash}</a>`;
-                    console.log(`Mined Transaction: View on etherscan https://rinkeby.etherscan.io/tx/${waveTxn.hash}`);
-
-                    // await fetchTotalWaves();
-                    await getAllWaves();
+                    txnOutput.value = `Mined Transaction: View on etherscan <a href="https://goerli.etherscan.io/tx/${waveTxn.hash}" target="_blank">https://goerli.etherscan.io/tx/${waveTxn.hash}</a>`;
+                    console.log(`Mined Transaction: View on etherscan https://goerli.etherscan.io/tx/${waveTxn.hash}`);
 
                     waveMessage.value = "";
 
-                }catch (e: any){
+                } catch (e: any) {
                     showAlert(e.message);
                 }
                 loading.value = false;
             }
         }
 
-        const getAllWaves = async ()=>{
+        const getAllWaves = async () => {
             const {ethereum} = window;
-            if(ethereum){
-                try{
+            if (ethereum) {
+                try {
                     const provider = new ethers.providers.Web3Provider(ethereum);
                     const signer = provider.getSigner();
                     const wavePortalContract = new ethers.Contract(
@@ -187,33 +185,36 @@ export default defineComponent({
                         signer
                     );
                     const _waves = await wavePortalContract.getWavers();
-                    waves.value = _waves.map((wave: any)=>{
+                    waves.value = _waves.map((wave: any) => {
                         return new Wave(
                             wave.waver,
                             wave.message,
                             new Date(wave.timestamp * 1000)
                         )
                     });
+                    wavePortalContract.on('NewWave', (from: string, timestamp: number, message: string) => {
+                        waves.value.push(new Wave(
+                            from,
+                            message,
+                            new Date(timestamp * 1000)
+                        ));
+                        scrollMsgToBottom();
+                    })
 
-                    if(_waves.length > 0){
-                        const msgsContainer = document.getElementsByClassName('messagesContainer');
-                        if(msgsContainer.length > 0){
-                            msgsContainer[0].animate({
-                                scrollTop: msgsContainer[0].scrollHeight
-                            }, 1000)
-                        }
+                    if (_waves.length > 0) {
+                        scrollMsgToBottom();
                     }
-                }catch (e: any){
+                } catch (e: any) {
                     showAlert(e.message);
                 }
             }
         }
 
-        onMounted(()=>{
+        onMounted(() => {
             const connected = checkIfWalletIsConnected();
-            if(connected){
+            if (connected) {
                 // fetchTotalWaves();
-                getAllWaves();
+                connectWallet().then(() => getAllWaves());
             }
         })
 
